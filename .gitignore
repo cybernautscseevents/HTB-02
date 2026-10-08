@@ -1,13 +1,38 @@
+# Dependencies
+
 node_modules/
+
+# Environment variables
+
 .env
 .env.*
 !.env.example
+!.env.*.example
+
+# Next.js
+
+.next/
+out/
+
+# Build outputs
 
 dist/
 build/
-.next/
 .cache/
 coverage/
 
+# Hardhat
+
+cache/
+artifacts/*
+!artifacts/contracts/
+!artifacts/contracts/DrugSupplyChain.sol/
+!artifacts/contracts/DrugSupplyChain.sol/DrugSupplyChain.json
+
+# OS files
+
 .DS_Store
+
+# Logs
+
 *.log
