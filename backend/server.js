@@ -211,10 +211,12 @@ app.get("/api/batches/:batchId/history", async (req, res) => {
     }
 });
 
+
 app.get("/api/verify/:batchId", async (req, res) => {
     const { batchId } = req.params;
 
     try {
+        // Check authenticity, expiry and recall status on-chain.
         const result = await contract.verifyBatch(batchId);
 
         const exists = result[0];
@@ -231,12 +233,41 @@ app.get("/api/verify/:batchId", async (req, res) => {
             });
         }
 
+        // Fetch the actual medicine record from the contract.
+        const batch = await contract.getBatch(batchId);
+
+        const formatDate = (timestamp) => {
+            const milliseconds = Number(timestamp) * 1000;
+            const date = new Date(milliseconds);
+
+            if (!Number.isFinite(milliseconds) || Number.isNaN(date.getTime())) {
+                return "Not available";
+            }
+
+            return date.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+                timeZone: "UTC"
+            });
+        };
+
+        const medicineDetails = {
+            batchId: batch.batchId,
+            medicine: batch.medicineName,
+            manufacturer: batch.manufacturer,
+            quantity: `${batch.quantity.toString()} units`,
+            manufactured: formatDate(batch.manufacturingDate),
+            expiry: formatDate(batch.expiryDate)
+        };
+
         if (recalled) {
             return res.json({
                 success: true,
                 verified: false,
                 status: "RECALLED",
-                message: "Batch has been recalled"
+                message: "Batch has been recalled. Do not dispense it.",
+                ...medicineDetails
             });
         }
 
@@ -245,30 +276,32 @@ app.get("/api/verify/:batchId", async (req, res) => {
                 success: true,
                 verified: false,
                 status: "EXPIRED",
-                message: "Batch has expired"
+                message: "Batch has expired. Do not dispense it.",
+                ...medicineDetails
             });
         }
 
-        res.json({
+        return res.json({
             success: true,
             verified: authentic,
             status: authentic ? "VALID" : "INVALID",
             message: authentic
                 ? "Batch is authentic and valid"
-                : "Batch verification failed"
+                : "Batch verification failed",
+            ...medicineDetails
         });
 
     } catch (error) {
         console.error("Blockchain verification failed:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             verified: false,
-            message: "Blockchain verification failed",
-            error: error.shortMessage || error.message
+            message: "Blockchain verification failed"
         });
     }
 });
+
 app.get("/api/qr/:batchId", async (req, res) => {
     const { batchId } = req.params;
 

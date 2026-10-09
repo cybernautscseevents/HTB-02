@@ -18,9 +18,6 @@ export default function VerificationPage() {
 
   const scannerRef = useRef(null);
 
-  /* =========================================
-     VERIFY MEDICINE
-  ========================================= */
 
   async function verifyBatch(id) {
     const value = String(id || batchId).trim().toUpperCase();
@@ -194,8 +191,15 @@ export default function VerificationPage() {
      RESULT STATE
   ========================================= */
 
-  const isExpired =
-    currentBatch?.status === "EXPIRED";
+  
+  const status = String(currentBatch?.status || "").toUpperCase();
+
+  const isExpired = status === "EXPIRED";
+  const isRecalled = status === "RECALLED";
+  const isUnregistered = status === "UNREGISTERED";
+  const isVerified = status === "VALID" || status === "VERIFIED";
+  const isNotVerified = !isVerified && !isExpired && !isRecalled;
+
 
   return (
     <>
@@ -1219,29 +1223,43 @@ export default function VerificationPage() {
 
                 <section
                   className={
-                    isExpired
-                      ? "status-card expired"
-                      : "status-card verified"
+                    isVerified
+                      ? "status-card verified"
+                      : "status-card expired"
                   }
                 >
 
                   <div className="status-icon">
-                    {isExpired ? "⚠" : "✓"}
+                    {isVerified ? "✓" : "⚠"}
                   </div>
 
                   <div className="status-info">
 
                     <div className="status-label">
-                      {isExpired
-                        ? "EXPIRED MEDICINE"
-                        : "VERIFIED MEDICINE"}
+                      {isVerified
+                        ? "VERIFIED MEDICINE"
+                        : isRecalled
+                          ? "RECALLED MEDICINE"
+                          : isExpired
+                            ? "EXPIRED MEDICINE"
+                            : isUnregistered
+                              ? "UNREGISTERED BATCH"
+                              : "NOT VERIFIED"}
                     </div>
 
+                    
                     <p>
-                      {isExpired
-                        ? "This medicine batch has passed its expiry date."
-                        : "This medicine batch has been successfully verified against the trusted supply chain."}
+                     {isVerified
+                       ? "This medicine batch has been verified as authentic and valid."
+                       : isRecalled
+                        ? "This batch has been recalled. Do not dispense this medicine."
+                        : isExpired
+                         ? "This medicine batch has expired. Do not dispense it."
+                         : isUnregistered
+                          ? "This batch is not registered on the blockchain. Do not trust or dispense it."
+                          : "Authenticity could not be confirmed. Do not dispense this medicine."}
                     </p>
+
 
                   </div>
 
@@ -1267,9 +1285,11 @@ export default function VerificationPage() {
                       </h2>
                     </div>
 
-                    <div className="blockchain-badge">
-                      🔗 Blockchain Record
-                    </div>
+                    {isVerified && (
+                      <div className="blockchain-badge">
+                        🔗 Blockchain Record
+                      </div>
+                    )}
 
                   </div>
 
