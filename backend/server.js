@@ -295,15 +295,26 @@ app.get("/api/qr/:batchId", async (req, res) => {
             qrCode
         });
 
+    
     } catch (error) {
-        console.error("QR generation failed:", error);
+        const errorMessage = error.shortMessage || error.message || "";
 
-        res.status(500).json({
+        if (errorMessage.includes("Batch does not exist")) {
+            return res.status(404).json({
+                success: false,
+                message: "Batch not found",
+                status: "UNREGISTERED"
+            });
+        }
+
+        console.error("QR generation failed:", errorMessage);
+
+        return res.status(500).json({
             success: false,
-            message: "QR generation failed",
-            error: error.shortMessage || error.message
+            message: "QR generation failed"
         });
     }
+
 });
 app.post("/api/transfer", async (req, res) => {
     const { batchId, to } = req.body;
